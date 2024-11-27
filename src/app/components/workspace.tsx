@@ -4,46 +4,84 @@ import React, { useState } from 'react';
 import { useWorkspaceStore } from '../store/workspace';
 
 const Workspace: React.FC = () => {
-  const { files, activeFileId, setActiveFile, addFile } = useWorkspaceStore();
-  const [isOpen, setIsOpen] = useState(true); // State to manage folder open/close
+  const { files, activeFileId, setActiveFile } = useWorkspaceStore();
+  const [openFolders, setOpenFolders] = useState<{ [key: string]: boolean }>({
+    contracts: false,
+    scripts: false,
+    tests: false,
+  });
 
-  const handleAddFile = () => {
-    const name = prompt('Enter new file name:');
-    if (name) {
-      addFile(name, '// New file content');
-    }
-  };
-
-  const toggleFolder = () => {
-    setIsOpen(!isOpen);
+  const toggleFolder = (folder: string) => {
+    setOpenFolders((prev) => ({ ...prev, [folder]: !prev[folder] }));
   };
 
   return (
     <div className="h-full bg-[#252526] text-gray-300 p-2">
       <div className="text-lg font-bold mb-2">Movelazy</div>
-      <button
-        onClick={handleAddFile}
-        className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mb-2"
-      >
-        Add File
-      </button>
       <div>
-        <div onClick={toggleFolder} className="cursor-pointer">
-          {isOpen ? '📂' : '📁'} Project Files
+        {/* Contracts Folder */}
+        <div onClick={() => toggleFolder('contracts')} className="cursor-pointer">
+          {openFolders.contracts ? '📂' : '📁'} Contracts
         </div>
-        {isOpen && (
+        {openFolders.contracts && (
           <ul className="overflow-y-auto pl-4">
-            {files.map((file) => (
-              <li
-                key={file.id}
-                className={`p-2 cursor-pointer ${
-                  file.id === activeFileId ? 'bg-blue-600' : 'hover:bg-gray-700'
-                }`}
-                onClick={() => setActiveFile(file.id)}
-              >
-                {file.name}
-              </li>
-            ))}
+            {files
+              .filter(file => file.name.startsWith('contracts/'))
+              .map((file) => (
+                <li
+                  key={file.id}
+                  className={`p-2 cursor-pointer ${
+                    file.id === activeFileId ? 'bg-blue-600' : 'hover:bg-gray-700'
+                  }`}
+                  onClick={() => setActiveFile(file.id)}
+                >
+                  {file.name}
+                </li>
+              ))}
+          </ul>
+        )}
+
+        {/* Scripts Folder */}
+        <div onClick={() => toggleFolder('scripts')} className="cursor-pointer">
+          {openFolders.scripts ? '📂' : '📁'} Scripts
+        </div>
+        {openFolders.scripts && (
+          <ul className="overflow-y-auto pl-4">
+            {files
+              .filter(file => file.name.startsWith('scripts/'))
+              .map((file) => (
+                <li
+                  key={file.id}
+                  className={`p-2 cursor-pointer ${
+                    file.id === activeFileId ? 'bg-blue-600' : 'hover:bg-gray-700'
+                  }`}
+                  onClick={() => setActiveFile(file.id)}
+                >
+                  {file.name}
+                </li>
+              ))}
+          </ul>
+        )}
+
+        {/* Tests Folder */}
+        <div onClick={() => toggleFolder('tests')} className="cursor-pointer">
+          {openFolders.tests ? '📂' : '📁'} Tests
+        </div>
+        {openFolders.tests && (
+          <ul className="overflow-y-auto pl-4">
+            {files
+              .filter(file => file.name.startsWith('tests/'))
+              .map((file) => (
+                <li
+                  key={file.id}
+                  className={`p-2 cursor-pointer ${
+                    file.id === activeFileId ? 'bg-blue-600' : 'hover:bg-gray-700'
+                  }`}
+                  onClick={() => setActiveFile(file.id)}
+                >
+                  {file.name}
+                </li>
+              ))}
           </ul>
         )}
       </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Workspace from '../workspace';
 import CodeEditor from '../CodeEditor';
+import TerminalComponent from '../Terminal';
 import { useWorkspaceStore } from '../../store/workspace';
 
 export default function IDE() {
@@ -25,11 +26,15 @@ export default function IDE() {
       </div>
       
       {/* Editor area */}
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col">
         <CodeEditor 
           value={activeFile ? activeFile.content : code} 
           onChange={handleFileChange} 
         />
+        {/* Terminal area */}
+        <div className="h-1/3">
+          <TerminalComponent />
+        </div>
       </div>
     </div>
   );
