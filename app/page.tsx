@@ -1,4 +1,4 @@
-import IDE from './components/layout/IDE';
+import IDE from './components/layouts/IDE';
 
 export default function Home() {
   return <IDE />;
