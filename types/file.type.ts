@@ -1,7 +1,7 @@
 export type File = {
     id: string;
     name: string;
-    content: string;
+    content?: string;
     createdAt: Date;
     updatedAt: Date;
 };
