@@ -4,6 +4,7 @@ export type File = {
     content?: string;
     createdAt: Date;
     updatedAt: Date;
+    isDirty: boolean; // unsaved file
 };
 
 export type FileFolder = 'contracts' | 'scripts' | 'tests';

@@ -10,6 +10,7 @@ interface WorkspaceState {
     deleteFile: (fileId: string) => void;
     updateFile: (fileId: string, newName: string) => void;
     updateFileContent: (fileId: string, content: string) => void;
+    saveFile: (fileId: string) => void;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -27,11 +28,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
             content: '',
             createdAt: new Date(),
             updatedAt: new Date(),
+            isDirty: false,
         };
 
         set((state) => ({
             files: [...state.files, newFile],
-            activeFileId: newFile.id, // Automatically open new file
+            activeFileId: newFile.id,
         }));
     },
 
@@ -64,6 +66,20 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
                     ? {
                         ...file,
                         content,
+                        isDirty: true,
+                    }
+                    : file
+            ),
+        }));
+    },
+
+    saveFile: (fileId) => {
+        set((state) => ({
+            files: state.files.map((file) =>
+                file.id === fileId
+                    ? {
+                        ...file,
+                        isDirty: false,
                         updatedAt: new Date(),
                     }
                     : file

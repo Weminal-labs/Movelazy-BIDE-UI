@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useWorkspaceStore } from '@/services/workspace';
 import { FileFolder } from '@/types/file.type';
-import { ChevronRight, ChevronDown, File as FileIcon, Folder, Plus, Trash2, Edit2 } from 'react-feather';
+import { ChevronRight, ChevronDown, File as FileIcon, Folder, Plus, Trash2, Edit2, Circle } from 'react-feather';
 
 export const Explorer = () => {
   const { files, activeFileId, setActiveFile, addFile, deleteFile, updateFile } = useWorkspaceStore();
@@ -74,6 +74,9 @@ export const Explorer = () => {
               >
                 <FileIcon size={16} className="mr-1 text-[#c5c5c5]" />
                 <span className="text-[#c5c5c5] text-sm">{file.name.split('/').pop()}</span>
+                {file.isDirty && (
+                  <Circle size={8} fill="#fff" className="ml-1 text-[#c5c5c5]" />
+                )}
                 <div className="ml-auto hidden group-hover:flex items-center gap-2">
                   <button
                     onClick={(e) => handleUpdateFile(file.id, file.name, e)}
