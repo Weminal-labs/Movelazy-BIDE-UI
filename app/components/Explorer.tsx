@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, DragEvent } from 'react';
 import { useWorkspaceStore } from '@/services/workspace';
 import { FileFolder } from '@/types/file.type';
 import {
@@ -25,6 +25,8 @@ export const Explorer = () => {
     scripts: false,
     tests: false,
   });
+  const [draggedFile, setDraggedFile] = useState<string | null>(null);
+  const [dragOverFolder, setDragOverFolder] = useState<FileFolder | null>(null);
 
   // Filter files based on search query
   const filteredFiles = useMemo(() => {
@@ -102,18 +104,58 @@ export const Explorer = () => {
     }
   };
 
+  // Drag handlers
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, fileId: string) => {
+    setDraggedFile(fileId);
+    e.dataTransfer.setData('text/plain', fileId);
+    // Add some opacity to dragged element
+    (e.target as HTMLDivElement).style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e: DragEvent<HTMLDivElement>) => {
+    setDraggedFile(null);
+    setDragOverFolder(null);
+    (e.target as HTMLDivElement).style.opacity = '1';
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>, folder: FileFolder) => {
+    e.preventDefault();
+    if (draggedFile && dragOverFolder !== folder) {
+      setDragOverFolder(folder);
+    }
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>, targetFolder: FileFolder) => {
+    e.preventDefault();
+    const fileId = e.dataTransfer.getData('text/plain');
+    const file = files.find(f => f.id === fileId);
+
+    if (file) {
+      const currentFolder = file.name.split('/')[0];
+      if (currentFolder !== targetFolder) {
+        const fileName = file.name.split('/').pop();
+        updateFile(fileId, `${targetFolder}/${fileName}`);
+      }
+    }
+
+    setDragOverFolder(null);
+    setDraggedFile(null);
+  };
+
   const FolderSection = ({ folder }: { folder: FileFolder }) => {
     const isOpen = openFolders[folder];
     const folderFiles = filteredFiles.filter((file) => file.name.startsWith(`${folder}/`));
 
-    // Don't render empty folders when searching
     if (searchQuery && folderFiles.length === 0) return null;
 
     return (
       <div>
         <div
           onClick={() => toggleFolder(folder)}
-          className="flex items-center px-2 py-1 hover:bg-[#2a2d2e] cursor-pointer group"
+          onDragOver={(e) => handleDragOver(e, folder)}
+          onDrop={(e) => handleDrop(e, folder)}
+          className={`flex items-center px-2 py-1 cursor-pointer group
+            ${dragOverFolder === folder ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'}`}
         >
           <span className="mr-1">
             {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -133,9 +175,13 @@ export const Explorer = () => {
             {folderFiles.map((file) => (
               <div
                 key={file.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, file.id)}
+                onDragEnd={handleDragEnd}
                 onClick={() => setActiveFile(file.id)}
                 className={`flex items-center px-2 py-1 cursor-pointer group
-                  ${file.id === activeFileId ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'}`}
+                  ${file.id === activeFileId ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'}
+                  ${draggedFile === file.id ? 'opacity-50' : ''}`}
               >
                 <FileIcon size={16} className="mr-1 text-[#c5c5c5]" />
                 <span className="text-[#c5c5c5] text-sm">{file.name.split('/').pop()}</span>
