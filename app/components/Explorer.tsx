@@ -1,16 +1,47 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useWorkspaceStore } from '@/services/workspace';
 import { FileFolder } from '@/types/file.type';
 import { ChevronRight, ChevronDown, File as FileIcon, Folder, Plus, Trash2, Edit2, Circle } from 'react-feather';
 
 export const Explorer = () => {
   const { files, activeFileId, setActiveFile, addFile, deleteFile, updateFile } = useWorkspaceStore();
+  const [explorerWidth, setExplorerWidth] = useState(240);
+  const [isResizing, setIsResizing] = useState(false);
   const [openFolders, setOpenFolders] = useState<{ [K in FileFolder]: boolean }>({
     contracts: true,
     scripts: false,
     tests: false,
   });
+
+  // Resize handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = Math.min(Math.max(e.clientX, 160), 480);
+      setExplorerWidth(newWidth);
+    }
+  }, [isResizing]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Add mouse move and up listeners
+  React.useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   const toggleFolder = (folder: FileFolder) => {
     setOpenFolders((prev) => ({ ...prev, [folder]: !prev[folder] }));
@@ -100,13 +131,20 @@ export const Explorer = () => {
   };
 
   return (
-    <div className="w-64 h-full bg-[#252526] border-r border-[#3c3c3c]">
-      <div className="p-2 text-sm font-semibold text-[#bbbbbb]">EXPLORER</div>
-      <div>
-        <FolderSection folder="contracts" />
-        <FolderSection folder="scripts" />
-        <FolderSection folder="tests" />
+    <div className="relative flex h-full" style={{ width: explorerWidth }}>
+      <div className="flex-1 bg-[#252526] border-r border-[#3c3c3c]">
+        <div className="p-2 text-sm font-semibold text-[#bbbbbb]">EXPLORER</div>
+        <div>
+          <FolderSection folder="contracts" />
+          <FolderSection folder="scripts" />
+          <FolderSection folder="tests" />
+        </div>
       </div>
+      {/* Resize handle */}
+      <div
+        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-600 active:bg-blue-600"
+        onMouseDown={handleMouseDown}
+      />
     </div>
   );
 };
