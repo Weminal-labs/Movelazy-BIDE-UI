@@ -1,18 +1,49 @@
 "use client";
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useWorkspaceStore } from '@/services/workspace';
 import { FileFolder } from '@/types/file.type';
-import { ChevronRight, ChevronDown, File as FileIcon, Folder, Plus, Trash2, Edit2, Circle } from 'react-feather';
+import {
+  ChevronRight,
+  ChevronDown,
+  File as FileIcon,
+  Folder,
+  Plus,
+  Trash2,
+  Edit2,
+  Circle,
+  Search,
+  X
+} from 'react-feather';
 
 export const Explorer = () => {
   const { files, activeFileId, setActiveFile, addFile, deleteFile, updateFile } = useWorkspaceStore();
   const [explorerWidth, setExplorerWidth] = useState(240);
   const [isResizing, setIsResizing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [openFolders, setOpenFolders] = useState<{ [K in FileFolder]: boolean }>({
     contracts: true,
     scripts: false,
     tests: false,
   });
+
+  // Filter files based on search query
+  const filteredFiles = useMemo(() => {
+    if (!searchQuery) return files;
+    return files.filter(file =>
+      file.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [files, searchQuery]);
+
+  // Auto-expand folders when searching
+  React.useEffect(() => {
+    if (searchQuery) {
+      setOpenFolders({
+        contracts: true,
+        scripts: true,
+        tests: true,
+      });
+    }
+  }, [searchQuery]);
 
   // Resize handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -73,7 +104,10 @@ export const Explorer = () => {
 
   const FolderSection = ({ folder }: { folder: FileFolder }) => {
     const isOpen = openFolders[folder];
-    const folderFiles = files.filter((file) => file.name.startsWith(`${folder}/`));
+    const folderFiles = filteredFiles.filter((file) => file.name.startsWith(`${folder}/`));
+
+    // Don't render empty folders when searching
+    if (searchQuery && folderFiles.length === 0) return null;
 
     return (
       <div>
@@ -132,17 +166,45 @@ export const Explorer = () => {
 
   return (
     <div className="relative flex h-full" style={{ width: explorerWidth }}>
-      <div className="flex-1 bg-[#252526] border-r border-[#3c3c3c]">
+      <div className="flex-1 bg-[#252526] border-r border-[#3c3c3c] overflow-y-auto flex flex-col">
         <div className="p-2 text-sm font-semibold text-[#bbbbbb]">EXPLORER</div>
-        <div>
+
+        {/* Search Bar */}
+        <div className="px-2 mb-2">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search files..."
+              className="w-full bg-[#3c3c3c] text-[#cccccc] text-sm px-8 py-1 rounded outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <Search
+              size={14}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 text-[#cccccc]"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[#cccccc] hover:text-white"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* File Tree */}
+        <div className="flex-1">
           <FolderSection folder="contracts" />
           <FolderSection folder="scripts" />
           <FolderSection folder="tests" />
         </div>
       </div>
+
       {/* Resize handle */}
       <div
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-600 active:bg-blue-600"
+        className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-600 active:bg-blue-600 z-10"
         onMouseDown={handleMouseDown}
       />
     </div>
