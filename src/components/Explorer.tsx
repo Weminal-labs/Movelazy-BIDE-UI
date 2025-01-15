@@ -2,31 +2,50 @@
 import React, { useState, useMemo, DragEvent } from 'react';
 import { useWorkspaceStore } from '@/services/workspace';
 import { FileFolder } from '@/types/file.type';
+import { FolderSection } from './FolderSection';
 import {
-  ChevronRight,
-  ChevronDown,
-  File as FileIcon,
-  Folder,
-  Plus,
-  Trash2,
-  Edit2,
-  Circle,
   Search,
-  X
+  X,
+  File as FileIcon,
+  Edit2,
+  Trash2,
+  Circle
 } from 'react-feather';
+import {
+  HELLO_FILE_NAME,
+  CONFIG_FILE_NAME,
+  HELLO_CONTENT,
+  CONFIG_CONTENT
+} from '@/constants/fileTemplates';
 
 export const Explorer = () => {
-  const { files, activeFileId, setActiveFile, addFile, deleteFile, updateFile } = useWorkspaceStore();
+  const { files, activeFileId, setActiveFile, addFile, addFileWithContent, deleteFile, updateFile } = useWorkspaceStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [openFolders, setOpenFolders] = useState<{ [K in FileFolder]: boolean }>({
     contracts: true,
-    scripts: false,
-    tests: false,
+    scripts: true,
+    tests: true,
   });
   const [draggedFile, setDraggedFile] = useState<string | null>(null);
   const [dragOverFolder, setDragOverFolder] = useState<FileFolder | null>(null);
 
-  // Filter files based on search query
+  const folders: FileFolder[] = ['contracts', 'scripts', 'tests'];
+  const [filesCreated, setFilesCreated] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    const createInitialFiles = async () => {
+      if (filesCreated) return;
+
+      await addFileWithContent(CONFIG_FILE_NAME, CONFIG_CONTENT);
+      await addFileWithContent(`${folders[0]}/${HELLO_FILE_NAME}`, HELLO_CONTENT);
+
+      setFilesCreated(true);
+    };
+
+    createInitialFiles();
+  });
+
+
   const filteredFiles = useMemo(() => {
     if (!searchQuery) return files;
     return files.filter(file =>
@@ -34,7 +53,6 @@ export const Explorer = () => {
     );
   }, [files, searchQuery]);
 
-  // Auto-expand folders when searching
   React.useEffect(() => {
     if (searchQuery) {
       setOpenFolders({
@@ -73,11 +91,9 @@ export const Explorer = () => {
     }
   };
 
-  // Drag handlers
   const handleDragStart = (e: DragEvent<HTMLDivElement>, fileId: string) => {
     setDraggedFile(fileId);
     e.dataTransfer.setData('text/plain', fileId);
-    // Add some opacity to dragged element
     (e.target as HTMLDivElement).style.opacity = '0.5';
   };
 
@@ -111,79 +127,15 @@ export const Explorer = () => {
     setDraggedFile(null);
   };
 
-  const FolderSection = ({ folder }: { folder: FileFolder }) => {
-    const isOpen = openFolders[folder];
-    const folderFiles = filteredFiles.filter((file) => file.name.startsWith(`${folder}/`));
-
-    if (searchQuery && folderFiles.length === 0) return null;
-
-    return (
-      <div>
-        <div
-          onClick={() => toggleFolder(folder)}
-          onDragOver={(e) => handleDragOver(e, folder)}
-          onDrop={(e) => handleDrop(e, folder)}
-          className={`flex items-center px-2 py-1 cursor-pointer group
-            ${dragOverFolder === folder ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'}`}
-        >
-          <span className="mr-1">
-            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </span>
-          <Folder size={16} className="mr-1 text-[#c5c5c5]" />
-          <span className="text-[#c5c5c5] text-sm capitalize">{folder}</span>
-          <button
-            onClick={(e) => handleCreateFile(folder, e)}
-            className="ml-auto hidden group-hover:block text-[#c5c5c5] hover:text-white"
-          >
-            <Plus size={14} />
-          </button>
-        </div>
-
-        {isOpen && (
-          <div className="ml-4">
-            {folderFiles.map((file) => (
-              <div
-                key={file.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, file.id)}
-                onDragEnd={handleDragEnd}
-                onClick={() => setActiveFile(file.id)}
-                className={`flex items-center px-2 py-1 cursor-pointer group
-                  ${file.id === activeFileId ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'}
-                  ${draggedFile === file.id ? 'opacity-50' : ''}`}
-              >
-                <FileIcon size={16} className="mr-1 text-[#c5c5c5]" />
-                <span className="text-[#c5c5c5] text-sm">{file.name.split('/').pop()}</span>
-                {file.isDirty && (
-                  <Circle size={8} fill="#fff" className="ml-1 text-[#c5c5c5]" />
-                )}
-                <div className="ml-auto hidden group-hover:flex items-center gap-2">
-                  <button
-                    onClick={(e) => handleUpdateFile(file.id, file.name, e)}
-                    className="text-[#c5c5c5] hover:text-white"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    onClick={(e) => handleDeleteFile(file.id, e)}
-                    className="text-[#c5c5c5] hover:text-red-400"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
+  // Get root files (files not in any folder)
+  const rootFiles = useMemo(() => {
+    return filteredFiles.filter(file => !file.name.includes('/'));
+  }, [filteredFiles]);
 
   return (
     <div className="h-full flex flex-col">
       <div className="p-2 text-sm font-semibold text-[#bbbbbb]">EXPLORER</div>
 
-      {/* Search Bar */}
       <div className="px-2 mb-2">
         <div className="relative">
           <input
@@ -208,11 +160,59 @@ export const Explorer = () => {
         </div>
       </div>
 
-      {/* File Tree */}
       <div className="flex-1 overflow-y-auto">
-        <FolderSection folder="contracts" />
-        <FolderSection folder="scripts" />
-        <FolderSection folder="tests" />
+        {/* Root files */}
+        {rootFiles.map((file) => (
+          <div
+            key={file.id}
+            onClick={() => setActiveFile(file.id)}
+            className={`flex items-center px-2 py-1 cursor-pointer group ml-2
+              ${file.id === activeFileId ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'}`}
+          >
+            <FileIcon size={16} className="mr-1 text-[#c5c5c5]" />
+            <span className="text-[#c5c5c5] text-sm">{file.name}</span>
+            {file.isDirty && (
+              <Circle size={8} fill="#fff" className="ml-1 text-[#c5c5c5]" />
+            )}
+            <div className="ml-auto hidden group-hover:flex items-center gap-2">
+              <button
+                onClick={(e) => handleUpdateFile(file.id, file.name, e)}
+                className="text-[#c5c5c5] hover:text-white"
+              >
+                <Edit2 size={14} />
+              </button>
+              <button
+                onClick={(e) => handleDeleteFile(file.id, e)}
+                className="text-[#c5c5c5] hover:text-red-400"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {/* Folders */}
+        {folders.map((folder) => (
+          <FolderSection
+            key={folder}
+            folder={folder}
+            filteredFiles={filteredFiles}
+            toggleFolder={toggleFolder}
+            handleCreateFile={handleCreateFile}
+            handleDragOver={handleDragOver}
+            handleDrop={handleDrop}
+            handleDragStart={handleDragStart}
+            handleDragEnd={handleDragEnd}
+            handleUpdateFile={handleUpdateFile}
+            handleDeleteFile={handleDeleteFile}
+            setActiveFile={setActiveFile}
+            activeFileId={activeFileId}
+            openFolders={openFolders}
+            draggedFile={draggedFile}
+            dragOverFolder={dragOverFolder}
+            searchQuery={searchQuery}
+          />
+        ))}
       </div>
     </div>
   );

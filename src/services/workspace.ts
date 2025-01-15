@@ -7,6 +7,7 @@ interface WorkspaceState {
     activeFileId: string | null;
     setActiveFile: (fileId: string) => void;
     addFile: (name: string) => void;
+    addFileWithContent: (name: string, content: string) => void;
     deleteFile: (fileId: string) => void;
     updateFile: (fileId: string, newName: string) => void;
     updateFileContent: (fileId: string, content: string) => void;
@@ -18,7 +19,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     activeFileId: null,
 
     setActiveFile: (fileId) => {
-        set({ activeFileId: fileId });
+        set((state) => {
+            if (!state.files.find((file) => file.id === fileId)) {
+                console.warn(`File with ID ${fileId} not found`);
+                return state;
+            }
+            return { activeFileId: fileId };
+        });
     },
 
     addFile: (name) => {
@@ -37,53 +44,72 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
         }));
     },
 
-    deleteFile: (fileId) => {
+    addFileWithContent(name, content) {
+        const newFile = {
+            id: uuidv4(),
+            name: name,
+            content: content,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isDirty: false,
+        };
+
         set((state) => ({
-            files: state.files.filter((file) => file.id !== fileId),
-            // If active file is deleted, clear active file
-            activeFileId: state.activeFileId === fileId ? null : state.activeFileId,
+            files: [...state.files, newFile],
+            activeFileId: newFile.id,
         }));
+    },
+
+    deleteFile: (fileId) => {
+        set((state) => {
+            const remainingFiles = state.files.filter((file) => file.id !== fileId);
+            const nextActiveFileId =
+                state.activeFileId === fileId && remainingFiles.length > 0
+                    ? remainingFiles[0].id
+                    : null;
+
+            return {
+                files: remainingFiles,
+                activeFileId: nextActiveFileId,
+            };
+        });
     },
 
     updateFile: (fileId, newName) => {
         set((state) => ({
-            files: state.files.map((file) =>
-                file.id === fileId
-                    ? {
-                        ...file,
-                        name: newName,
-                        updatedAt: new Date(),
-                    }
-                    : file
-            ),
+            files: updateFileById(state.files, fileId, (file) => ({
+                ...file,
+                name: newName,
+                updatedAt: new Date(),
+            })),
         }));
     },
 
     updateFileContent: (fileId, content) => {
         set((state) => ({
-            files: state.files.map((file) =>
-                file.id === fileId
-                    ? {
-                        ...file,
-                        content,
-                        isDirty: true,
-                    }
-                    : file
-            ),
+            files: updateFileById(state.files, fileId, (file) => ({
+                ...file,
+                content,
+                isDirty: file.content !== content,
+            })),
         }));
     },
 
     saveFile: (fileId) => {
         set((state) => ({
-            files: state.files.map((file) =>
-                file.id === fileId
-                    ? {
-                        ...file,
-                        isDirty: false,
-                        updatedAt: new Date(),
-                    }
-                    : file
-            ),
+            files: updateFileById(state.files, fileId, (file) => ({
+                ...file,
+                isDirty: false,
+                updatedAt: new Date(),
+            })),
         }));
     },
 }));
+
+const updateFileById = (
+    files: File[],
+    fileId: string,
+    updateFn: (file: File) => File
+): File[] => {
+    return files.map((file) => (file.id === fileId ? updateFn(file) : file));
+};

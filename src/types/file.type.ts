@@ -1,8 +1,8 @@
 export type File = {
-    id: string;
+    readonly id: string;
     name: string;
     content?: string;
-    createdAt: Date;
+    readonly createdAt: Date;
     updatedAt: Date;
     isDirty: boolean; // unsaved file
 };

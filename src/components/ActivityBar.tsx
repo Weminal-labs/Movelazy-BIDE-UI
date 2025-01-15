@@ -2,8 +2,6 @@
 import React from 'react';
 import { FileText, Search, GitBranch, Package } from 'react-feather';
 import { PanelType } from '@/types/panel.type';
-import logoImg from "/logo.png"
-import codeImg from "/code.png"
 
 interface ActivityBarProps {
     activePanel: PanelType | null;
@@ -19,7 +17,7 @@ export const ActivityBar = ({ activePanel, onPanelChange }: ActivityBarProps) =>
         {
             id: 'compiler', icon: (
                 <img
-                    src={codeImg}
+                    src="/code.png"
                     width={24}
                     height={24}
                     alt="Deployer"
@@ -30,7 +28,7 @@ export const ActivityBar = ({ activePanel, onPanelChange }: ActivityBarProps) =>
         {
             id: 'deployer', icon: (
                 <img
-                    src={logoImg}
+                    src="/logo.png"
                     width={24}
                     height={24}
                     alt="Deployer"
